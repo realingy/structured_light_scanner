@@ -115,12 +115,10 @@ int main(int argc, char **argv)
     cout << "Done!!!" <<endl;
 
     
- //    imwrite("../mydata/filterphaseright.jpg", filterphase);
-//     imwrite("../mydata/unwrapped_phase_left.jpg", unwrapped_phase_left);
-   //  imshow("filter_phase", unwrapped_phase_right);
-    // waitKey(0);
-
-
+	//imwrite("../mydata/filterphaseright.jpg", filterphase);
+	//imwrite("../mydata/unwrapped_phase_left.jpg", unwrapped_phase_left);
+	//imshow("filter_phase", unwrapped_phase_right);
+    //waitKey(0);
     
 #endif
    
