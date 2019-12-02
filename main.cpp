@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <math.h>
 #include <time.h>
+#include <string>
 #include "CameraCalib.h"
 #include "CalPhase.h"
 #include "Propointcloud.h"
@@ -10,8 +11,8 @@
 using namespace cv;
 using namespace std;
 
-#define PHASE_THRESHOLD  0.01  // model20 0.01(singlematch) model1 0.01
-#define BLOCK_THRESHOLD  0.3
+#define PHASE_THRESHOLD  0.01  // model20 0.01(singlematch) model1 0.01 //相位阈值
+#define BLOCK_THRESHOLD  0.3   // Block阈值
 
 static void savePhase(const char* filename, Mat& mat);
 static void savepnts3D(const char* filename,  Mat& mat);
@@ -23,26 +24,29 @@ void find_featureSAD(Mat& leftphase, Mat& rightphase);
 void find_featureBlock(Mat& leftphase, Mat& rightphase, 
                        vector<Point2f>& leftkeypoint, vector<Point2f>& rightkeypoint);
 
-
 const string storintrinsicsyml  = "../mydata/output/intrinsics.yml";
 const string storextrinsicsyml  = "../mydata/output/extrinsics.yml";
 
 int main(int argc, char **argv) 
 {
+/***********************Stereo Calibration*****************************************/
+/***********************相机立体标定*****************************************/
+#if 0
+	const string Calibimagelistfn = "../mydata/input/stereo_calib_images.xml";  
      
-#if 0  // Stereo Calibration......
-     const string Calibimagelistfn = "../mydata/input/stereo_calib_images.xml";  
+	cout << "Stereo Calibration......" <<endl;
      
-     cout << "Stereo Calibration......" <<endl;
+	clock_t start=0, end=0;
+	start = clock();  //开始计时     
      
-     clock_t start=0, end=0;
-     start = clock();  //开始计时     
+	StereoCalibration(Calibimagelistfn, storintrinsicsyml, storextrinsicsyml);
      
-     StereoCalibration(Calibimagelistfn, storintrinsicsyml, storextrinsicsyml);
-     
-     end = clock(); //计时结束
-     double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
-     printf("Done in %.2lf seconds.\n", elapsed_secs);
+	end = clock(); //计时结束
+    
+	double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
+	printf("Done in %.2lf seconds.\n", elapsed_secs);
+
+	while (1) {}
 
 #endif
 
@@ -140,14 +144,13 @@ int main(int argc, char **argv)
     
     find_featurepionts_single_match(unwrapped_phase_left, unwrapped_phase_right, leftfeaturepoints, rightfeaturepoints);
     
-  //  find_featureBlock(unwrapped_phase_left, unwrapped_phase_right, leftfeaturepoints, rightfeaturepoints);
+	// find_featureBlock(unwrapped_phase_left, unwrapped_phase_right, leftfeaturepoints, rightfeaturepoints);
+	// find_featureSAD(unwrapped_phase_left, unwrapped_phase_right);
     
-  //  find_featureSAD(unwrapped_phase_left, unwrapped_phase_right);
-    
-    cout << "the number of feature" << leftfeaturepoints.size() <<endl;
+	cout << "the number of feature" << leftfeaturepoints.size() <<endl;
 
 
-    Mat pnts3D(4, leftfeaturepoints.size(), CV_64F);
+	Mat pnts3D(4, leftfeaturepoints.size(), CV_64F);
     
     cout << "Calculate points3D......"<<endl;
     triangulatePoints(P1, P2, leftfeaturepoints, rightfeaturepoints, pnts3D);
@@ -156,170 +159,170 @@ int main(int argc, char **argv)
     savepnts3D(pnts3D_filename, pnts3D);
     savepntsPCD(pnts3D);
 #endif    
-/*********************surface reconstruction************************************/
-#if 1  // surface reconstruction
 
-   cout << "surface reconstruction......" <<endl;
-  // filterpointcloud();
-   poissonreconstruction();
+/*********************surface reconstruction************************************/
+/*********************表面重建*******************************/
+#if 1  // surface reconstruction
+	cout << "surface reconstruction......" <<endl;
+	// filterpointcloud();
+	poissonreconstruction();
     
-    cout << "All Done......" <<endl;
+	cout << "All Done......" <<endl;
 #endif
     
     return 0;
 }
 
-
 void find_featurepionts(Mat& leftphase, Mat& rightphase, 
 			vector<Point2f>& leftkeypoint, vector<Point2f>& rightkeypoint)
 {
-  int nr = leftphase.rows;
-  int nc = leftphase.cols;
-  int x, y, k1,k2;
-  float left, right;
-  Point2f fleft, fright;
-  float *pre_right_data;
-  int pre_k;
+	int nr = leftphase.rows;
+	int nc = leftphase.cols;
+	int x, y, k1,k2;
+	float left, right;
+	Point2f fleft, fright;
+	float *pre_right_data;
+	int pre_k;
   
-  
-  for(y = 0; y < nr; y+=1)
-  {
-    float *left_phase_data = leftphase.ptr<float>(y);
-    float *right_phase_data = rightphase.ptr<float>(y);   
-    float *left_phase_data2;
-//     k = 0;
-//     pre_right_data = right_phase_data;
-//     pre_k = k;
+	for(y = 0; y < nr; y+=1)
+	{
+		float *left_phase_data = leftphase.ptr<float>(y);
+		float *right_phase_data = rightphase.ptr<float>(y);   
+		float *left_phase_data2;
+		// k = 0;
+		// pre_right_data = right_phase_data;
+		// pre_k = k;
     
-    for(x = 0; x < nc; x++)
-    {
-      left = *left_phase_data++;
+		for(x = 0; x < nc; x++)
+		{
+			left = *left_phase_data++;
            
-      if(left > 2*CV_PI)
-      {
-// 	right_phase_data = pre_right_data;
-// 	k = pre_k; // order constraint	
-	right_phase_data = rightphase.ptr<float>(y);        	
-	k1 = 0;
+			if(left > 2*CV_PI)
+			{
+				// right_phase_data = pre_right_data;
+				// k = pre_k;
+				// order constraint	
+				right_phase_data = rightphase.ptr<float>(y);        	
+				k1 = 0;
 	
-	while((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k1 < nc)) k1++;
-	if(k1 < nc)
-	{	  	  
-// 	  pre_right_data = right_phase_data;
-// 	  pre_k = k;
-	  right = *(--right_phase_data);
-	  left_phase_data2 = leftphase.ptr<float>(y);
-	  k2=0;
-	  while((abs(right - *left_phase_data2++) > PHASE_THRESHOLD) && (k2 < nc)) k2++;
-	  
-	  if((k2 < nc) && (abs(k2-x) < 2))
-	  {
-	    fleft.x = (x+k2)/2;
-	    fleft.y = y;
-	    fright.x = k1;
-	    fright.y = y;
-	    leftkeypoint.push_back(fleft);
-	    rightkeypoint.push_back(fright);
-	  }
+				while((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k1 < nc)) k1++;
+				if(k1 < nc)
+				{	  	  
+					//pre_right_data = right_phase_data;
+					//pre_k = k;
+					right = *(--right_phase_data);
+					left_phase_data2 = leftphase.ptr<float>(y);
+					k2=0;
+					while((abs(right - *left_phase_data2++) > PHASE_THRESHOLD) && (k2 < nc))
+						k2++;
+	
+					if((k2 < nc) && (abs(k2-x) < 2))
+					{
+						fleft.x = (x+k2)/2;
+						fleft.y = y;
+						fright.x = k1;
+						fright.y = y;
+						leftkeypoint.push_back(fleft);
+						rightkeypoint.push_back(fright);
+					}
+				}
+			}
+		}
 	}
-      }
-
-    }
-  }
 }
 
 void find_featurepionts_single_match(Mat& leftphase, Mat& rightphase, 
 			vector<Point2f>& leftkeypoint, vector<Point2f>& rightkeypoint)
 {
-  int nr = leftphase.rows;
-  int nc = leftphase.cols;
-  int x, y, k;
-  float left;
-  Point2f fleft, fright;
+	int nr = leftphase.rows;
+	int nc = leftphase.cols;
+	int x, y, k;
+	float left;
+	Point2f fleft, fright;
   
-  for(y = 0; y < nr; y+=1)
-  {
-    float *left_phase_data = leftphase.ptr<float>(y); 
-    float *right_phase_data = rightphase.ptr<float>(y);
-
-    for(x = 0; x < nc; x++)
-    {
-      left = *left_phase_data++;
-      
-      if(left > 2*CV_PI)
-      {
-	right_phase_data = rightphase.ptr<float>(y);       	
-	k = 0;
-	
-	while((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k < nc)) k++;
-	if(k < nc)
+	for(y = 0; y < nr; y+=1)
 	{
-	  fleft.x = x;
-	  fleft.y = y;
-	  fright.x = k;
-	  fright.y = y;
-	  leftkeypoint.push_back(fleft);
-	  rightkeypoint.push_back(fright);
-	}
-      }
+		float *left_phase_data = leftphase.ptr<float>(y); 
+		float *right_phase_data = rightphase.ptr<float>(y);
 
-    }
-  }
+		for(x = 0; x < nc; x++)
+		{
+			left = *left_phase_data++;
+      
+			if(left > 2*CV_PI)
+			{
+				right_phase_data = rightphase.ptr<float>(y);       	
+				k = 0;
+	
+				while((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k < nc)) k++;
+				if(k < nc)
+				{
+					fleft.x = x;
+					fleft.y = y;
+					fright.x = k;
+					fright.y = y;
+					leftkeypoint.push_back(fleft);
+					rightkeypoint.push_back(fright);
+				}
+			}
+		}
+	}
 }
 
 void find_featureBlock(Mat& leftphase, Mat& rightphase, 
                        vector<Point2f>& leftkeypoint, vector<Point2f>& rightkeypoint)
 {
-  int nr = leftphase.rows;
-  int nc = leftphase.cols;
-  Size Blocksize = Size(3,3);
+	int nr = leftphase.rows;
+	int nc = leftphase.cols;
+	Size Blocksize = Size(3,3);
 
-  int h = Blocksize.height;
-  int w = Blocksize.width;
-  int x,y,i,j,k;
+	int h = Blocksize.height;
+	int w = Blocksize.width;
+	int x,y,i,j,k;
   
-  Point2f fleft, fright;
+	Point2f fleft, fright;
   
-  float leftdataaver, rightdataaver;
-  for(y=0; y < nr-h; y+=h)
-  {
-    for(x=0; x < nc-w; x+=w)
-    {
-      leftdataaver = 0;      
-      for(j=0; j<h; j++)
-      {
-	for(i=0; i<w; i++)
-	leftdataaver += leftphase.at<float>(y+j,x+i);
-      }
-      leftdataaver = leftdataaver/(h*w);
-      
-      if(leftdataaver > 2*CV_PI)
-      {
-	for(k=0; k < nc-w; k+=w)
+	float leftdataaver, rightdataaver;
+	for(y=0; y < nr-h; y+=h)
 	{
-	  rightdataaver = 0;
-	  for(j=0; j<h; j++)
-	  {
-	    for(i=0; i<w; i++)
-	    rightdataaver += rightphase.at<float>(y+j,k+i);
-	  }
-	  rightdataaver = rightdataaver / (h*w);
-	  if(abs(rightdataaver-leftdataaver) < BLOCK_THRESHOLD)
-	  {
-	    fleft.x = x/2 + 1;
-	    fleft.y = y/2 + 1;
-	    fright.x = k/2 + 1;
-	    fright.y = y/2 + 1;
-	    leftkeypoint.push_back(fleft);
-	    rightkeypoint.push_back(fright);
-	    break;
-	  }
+		for(x=0; x < nc-w; x+=w)
+		{
+			leftdataaver = 0;      
+			for(j=0; j<h; j++)
+			{
+				for(i=0; i<w; i++)
+					leftdataaver += leftphase.at<float>(y+j,x+i);
+			}
+			leftdataaver = leftdataaver/(h*w);
+      
+			if(leftdataaver > 2*CV_PI)
+			{
+				for(k=0; k < nc-w; k+=w)
+				{
+					rightdataaver = 0;
+					for(j=0; j<h; j++)
+					{
+						for(i=0; i<w; i++)
+							rightdataaver += rightphase.at<float>(y+j,k+i);
+					}
+					rightdataaver = rightdataaver / (h*w);
+					if(abs(rightdataaver-leftdataaver) < BLOCK_THRESHOLD)
+					{
+						fleft.x = x/2 + 1;
+						fleft.y = y/2 + 1;
+						fright.x = k/2 + 1;
+						fright.y = y/2 + 1;
+						leftkeypoint.push_back(fleft);
+						rightkeypoint.push_back(fright);
+						break;
+					}
+				}
+			}
+		}
 	}
-      }
-    }
-  }
-  
 }
+
+//计算视差
 void find_featureSAD(Mat& leftphase, Mat& rightphase)
 {
     Mat leftimg8(Size(leftphase.cols, leftphase.rows), CV_8UC1, Scalar(0.0));
@@ -358,41 +361,42 @@ void find_featureSAD(Mat& leftphase, Mat& rightphase)
        return ;
     }
     
-   Mat R, T, R1, P1, R2, P2;
-   fs["R"] >> R;
-   fs["T"] >> T;
-   fs["R1"] >> R1;
-   fs["R2"] >> R2;
-   fs["P1"] >> P1;
-   fs["P2"] >> P2;
+	Mat R, T, R1, P1, R2, P2;
+	fs["R"] >> R;
+	fs["T"] >> T;
+	fs["R1"] >> R1;
+	fs["R2"] >> R2;
+	fs["P1"] >> P1;
+	fs["P2"] >> P2;
    
-   stereoRectify(M1, D1, M2, D2,img_size, R, T, R1, R2, P1, P2, Q,
+	stereoRectify(M1, D1, M2, D2,img_size, R, T, R1, R2, P1, P2, Q,
                   0, -1, img_size, &roi1, &roi2);
   
-  int numberOfDisparities =((img_size.width/8) + 15) & -16;
+	int numberOfDisparities =((img_size.width/8) + 15) & -16;
    
-  Ptr<StereoBM> bm = StereoBM::create(16, 3);
-  bm->setROI1(roi1);
-  bm->setROI2(roi2);  
-  bm->setPreFilterCap(31);
-  bm->setBlockSize(5);
-  bm->setMinDisparity(0);
-  bm->setNumDisparities(numberOfDisparities);
-  bm->setTextureThreshold(120);
-  bm->setUniquenessRatio(7);
-  bm->setSpeckleWindowSize(20);
-  bm->setSpeckleRange(64);
-  bm->setDisp12MaxDiff(-1);  
+	Ptr<StereoBM> bm = StereoBM::create(16, 3);
+	bm->setROI1(roi1);
+	bm->setROI2(roi2);  
+	bm->setPreFilterCap(31);
+	bm->setBlockSize(5);
+	bm->setMinDisparity(0);
+	bm->setNumDisparities(numberOfDisparities);
+	bm->setTextureThreshold(120);
+	bm->setUniquenessRatio(7);
+	bm->setSpeckleWindowSize(20);
+	bm->setSpeckleRange(64);
+	bm->setDisp12MaxDiff(-1);  
   
-  Mat disp, disp8;
-  bm->compute(leftimg8, rightimg8, disp);
-  disp.convertTo(disp8, CV_8U, 255/(numberOfDisparities*16.));
-  double sf = 640./MAX(disp8.rows, disp8.cols);
-  resize(disp8, disp8, Size(), sf, sf);   //调整图像大小640 x 640
-  imshow("disparity", disp8);
-  waitKey(0);
+	Mat disp, disp8;
+	bm->compute(leftimg8, rightimg8, disp);
+	disp.convertTo(disp8, CV_8U, 255/(numberOfDisparities*16.));
+	double sf = 640./MAX(disp8.rows, disp8.cols);
+	resize(disp8, disp8, Size(), sf, sf);   //调整图像大小640 x 640
+	imshow("disparity", disp8);
+	waitKey(0);
 }
 
+//保存相位
 static void savePhase(const char* filename, Mat& mat)
 {
     FILE* fp = fopen(filename, "wt");
@@ -410,6 +414,7 @@ static void savePhase(const char* filename, Mat& mat)
     fclose(fp);
 }
 
+//保存3D点
 static void savepnts3D(const char* filename, Mat& mat)
 {
     FILE* fp = fopen(filename, "wt");
@@ -441,10 +446,6 @@ static void savepnts3D(const char* filename, Mat& mat)
     imwrite("../mydata/output/pnts3D.jpg", pnts3Dimg);
     fclose(fp);
 }
-
-
-
-
 
 
 

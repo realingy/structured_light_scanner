@@ -3,6 +3,8 @@
 using namespace cv;
 using namespace std;
 
+// 相机立体标定
+
 #define CORNER_COLS  7
 #define CORNER_ROWS  6
 bool displayCorners = true;   //可视化角点
@@ -111,6 +113,7 @@ static void StereoCalib(const vector<string>& imagelist, Size boardSize, bool us
             j++;
         }
     }
+
     cout << j << " pairs have been successfully detected.\n";
     nimages = j;
     if( nimages < 2 )
@@ -159,15 +162,16 @@ static void StereoCalib(const vector<string>& imagelist, Size boardSize, bool us
     Mat R, T, E, F;
 
     double rms = stereoCalibrate(objectPoints, imagePoints[0], imagePoints[1],
-                    cameraMatrix[0], distCoeffs[0],
-                    cameraMatrix[1], distCoeffs[1],
-                    imageSize, R, T, E, F,
-		    CALIB_FIX_ASPECT_RATIO +
-		    CALIB_SAME_FOCAL_LENGTH +
-		    CALIB_ZERO_TANGENT_DIST +
+			cameraMatrix[0], distCoeffs[0],
+			cameraMatrix[1], distCoeffs[1],
+			imageSize, R, T, E, F,
+			CALIB_FIX_ASPECT_RATIO +
+			CALIB_SAME_FOCAL_LENGTH +
+			CALIB_ZERO_TANGENT_DIST +
 		    CALIB_RATIONAL_MODEL +
-                    CALIB_FIX_K3 + CALIB_FIX_K4 + CALIB_FIX_K5,
-                    TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 100, 1e-5) );
+            CALIB_FIX_K3 + CALIB_FIX_K4 + CALIB_FIX_K5,
+            TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 100, 1e-5)
+			);
     cout << "done with RMS error=" << rms << endl;
 
 //                     CALIB_FIX_ASPECT_RATIO +
@@ -225,7 +229,7 @@ static void StereoCalib(const vector<string>& imagelist, Size boardSize, bool us
                   imageSize, R, T, R1, R2, P1, P2, Q,
                   0, -1, imageSize, &validRoi[0], &validRoi[1]);    
                  
-                 // 0, -1, imageSize, &validRoi[0], &validRoi[1]);
+//	   0, -1, imageSize, &validRoi[0], &validRoi[1]);
 //     fs.open(storextrinsicsyml, FileStorage::WRITE);
 //     if( fs.isOpened() )
 //     {
@@ -235,8 +239,8 @@ static void StereoCalib(const vector<string>& imagelist, Size boardSize, bool us
 //     else
 //         cout << "Error: can not save the extrinsic parameters\n";
 
-    // OpenCV can handle left-right
-    // or up-down camera arrangements
+// OpenCV can handle left-right
+// or up-down camera arrangements
     bool isVerticalStereo = fabs(P2.at<double>(1, 3)) > fabs(P2.at<double>(0, 3));
     
 // COMPUTE AND DISPLAY RECTIFICATION
@@ -328,56 +332,64 @@ static void StereoCalib(const vector<string>& imagelist, Size boardSize, bool us
             for( j = 0; j < canvas.cols; j += 16 )
                 line(canvas, Point(j, 0), Point(j, canvas.rows), Scalar(0, 255, 0), 1, 8);
         imshow("rectified", canvas);
-//	imwrite("../mydata/rectified.jpg", canvas);
+		// imwrite("../mydata/rectified.jpg", canvas);
         char c = (char)waitKey();
         if( c == 27 || c == 'q' || c == 'Q' )
             break;
     }
 }
 
-
+// 立体标定
 void StereoCalibration(const std::string &imagelistfn, const std::string &storintrinsics, 
 		       const std::string &storextrinsics)
 {
-    Size boardSize = Size(CORNER_COLS, CORNER_ROWS);  //corners 
+	Size boardSize = Size(CORNER_COLS, CORNER_ROWS);  // 棋格数 corners 
     bool showRectified = true;  
 
     vector<string> imagelist;
     bool ok = readStringList(imagelistfn, imagelist);
     if(!ok || imagelist.empty())
     {
-        cout << "can not open " << imagelistfn << " or the string list is empty" << endl;
+        cout << "can not open " << imagelistfn << " or the string list is empty." << endl;
     }
-    
+
+	/*
+	cout << "open " << imagelistfn << " success." << endl;
+	for (auto image : imagelist)
+	{
+		cout << image << "\n";
+	}
+	*/
+
     StereoCalib(imagelist, boardSize, true, showRectified, storintrinsics, storextrinsics);
 }
 
 void ImgRectified(const std::string& intrinsic_filename, const std::string& extrinsic_filename, 
 		  const std::string& imageListfn, const std::string& RectimageListfn)
 {
-    bool  showRect = true;
+	bool  showRect = true;
     vector<string> imagelist;
     vector<string> Rectimagelist;
     bool ok = readStringList(imageListfn, imagelist);
     if(!ok || imagelist.empty())
     {
-       cout << "can not open " << imageListfn << " or the string list is empty" << endl;
+		cout << "can not open " << imageListfn << " or the string list is empty" << endl;
     }   
     if( imagelist.size() % 2 != 0 )
     {
-       cout << "Error: the image list contains odd (non-even) number of elements\n";
-       return;
+		cout << "Error: the image list contains odd (non-even) number of elements\n";
+		return;
     }
     
     ok = readStringList(RectimageListfn, Rectimagelist);
     if(!ok || Rectimagelist.empty())
     {
-       cout << "can not open " << RectimageListfn << " or the string list is empty" << endl;
+		cout << "can not open " << RectimageListfn << " or the string list is empty" << endl;
     }   
     if( Rectimagelist.size() % 2 != 0 )
     {
-       cout << "Error: the image list contains odd (non-even) number of elements\n";
-       return;
+		cout << "Error: the image list contains odd (non-even) number of elements\n";
+		return;
     }
     
     int i, k, nimages = imagelist.size()/2;   	
@@ -392,8 +404,8 @@ void ImgRectified(const std::string& intrinsic_filename, const std::string& extr
     FileStorage fs(intrinsic_filename, FileStorage::READ);
     if(!fs.isOpened())
     {
-       printf("Failed to open file intrinsic_filename.\n");
-       return ;
+		printf("Failed to open file intrinsic_filename.\n");
+		return ;
     }
 
     Mat M1, D1, M2, D2;
@@ -405,66 +417,63 @@ void ImgRectified(const std::string& intrinsic_filename, const std::string& extr
     fs.open(extrinsic_filename, FileStorage::READ);
     if(!fs.isOpened())
     {
-       printf("Failed to open file extrinsic_filename.\n");
-       return ;
-     }
-
-     Mat R, T, R1, P1, R2, P2;
-     fs["R"] >> R;
-     fs["T"] >> T;
-     fs["R1"] >> R1;
-     fs["R2"] >> R2;
-     fs["P1"] >> P1;
-     fs["P2"] >> P2;
-	
-   //  stereoRectify( M1, D1, M2, D2, img_size, R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, img_size, &roi1, &roi2 );
-     
-     
-     Mat map11, map12, map21, map22;
-     initUndistortRectifyMap(M1, D1, R1, P1, img_size, CV_16SC2, map11, map12);
-     initUndistortRectifyMap(M2, D2, R2, P2, img_size, CV_16SC2, map21, map22);
-
-     for(i=0; i < nimages; i++)
-     {
-        filename = imagelist[2*i];
-	Mat img1 = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
-	filename = imagelist[2*i+1];
-	Mat img2 = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
-	  
-	Mat img1r, img2r;
-	remap(img1, img1r, map11, map12, INTER_LINEAR);
-	remap(img2, img2r, map21, map22, INTER_LINEAR);
-	
-	filename  = Rectimagelist[2*i];
-	imwrite(filename,img1r);
-	filename  = Rectimagelist[2*i+1];
-	imwrite(filename,img2r);
-	if(showRect)
-	{
-	  Mat canvas;
-          double sf;
-          int w, h;
-	  sf = 600./MAX(img_size.width, img_size.height);  //600
-          w = cvRound(img_size.width*sf);
-          h = cvRound(img_size.height*sf);
-          canvas.create(h, w*2, CV_8UC3);
-	  
-	  cvtColor(img1r, img1, COLOR_GRAY2BGR);
-	  cvtColor(img2r, img2, COLOR_GRAY2BGR);
-	  
-	  Mat canvasPart = canvas(Rect(w*0, 0, w, h));
-          resize(img1, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
-	  canvasPart = canvas(Rect(w*1, 0, w, h));
-	  resize(img2, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
-	  
-	  for(int j = 0; j < canvas.rows; j += 16 )
-                line(canvas, Point(0, j), Point(canvas.cols, j), Scalar(0, 255, 0), 1, 8);
-	  
-          imshow("rectified", canvas);
-          char c = (char)waitKey();
-          if( c == 27 || c == 'q' || c == 'Q' )
-            break;
+		printf("Failed to open file extrinsic_filename.\n");
+		return ;
 	}
-      }
 
+	Mat R, T, R1, P1, R2, P2;
+	fs["R"] >> R;
+	fs["T"] >> T;
+	fs["R1"] >> R1;
+	fs["R2"] >> R2;
+	fs["P1"] >> P1;
+	fs["P2"] >> P2;
+	//  stereoRectify( M1, D1, M2, D2, img_size, R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, img_size, &roi1, &roi2 );
+     
+	Mat map11, map12, map21, map22;
+	initUndistortRectifyMap(M1, D1, R1, P1, img_size, CV_16SC2, map11, map12);
+	initUndistortRectifyMap(M2, D2, R2, P2, img_size, CV_16SC2, map21, map22);
+
+	for(i=0; i < nimages; i++)
+	{
+		filename = imagelist[2*i];
+		Mat img1 = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
+		filename = imagelist[2*i+1];
+		Mat img2 = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
+	  
+		Mat img1r, img2r;
+		remap(img1, img1r, map11, map12, INTER_LINEAR);
+		remap(img2, img2r, map21, map22, INTER_LINEAR);
+	
+		filename  = Rectimagelist[2*i];
+		imwrite(filename,img1r);
+		filename  = Rectimagelist[2*i+1];
+		imwrite(filename,img2r);
+		if(showRect)
+		{
+			Mat canvas;
+			double sf;
+			int w, h;
+			sf = 600./MAX(img_size.width, img_size.height);  //600
+			w = cvRound(img_size.width*sf);
+			h = cvRound(img_size.height*sf);
+			canvas.create(h, w*2, CV_8UC3);
+	  
+			cvtColor(img1r, img1, COLOR_GRAY2BGR);
+			cvtColor(img2r, img2, COLOR_GRAY2BGR);
+	  
+			Mat canvasPart = canvas(Rect(w*0, 0, w, h));
+			resize(img1, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
+			canvasPart = canvas(Rect(w*1, 0, w, h));
+			resize(img2, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
+	  
+			for(int j = 0; j < canvas.rows; j += 16 )
+				line(canvas, Point(0, j), Point(canvas.cols, j), Scalar(0, 255, 0), 1, 8);
+	  
+			imshow("rectified", canvas);
+			char c = (char)waitKey();
+			if( c == 27 || c == 'q' || c == 'Q' )
+				break;
+		}
+	}
 }
