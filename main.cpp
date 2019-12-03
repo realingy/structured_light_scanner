@@ -46,16 +46,14 @@ int main(int argc, char **argv)
 	double elapsed_secs = double(end - start) / CLOCKS_PER_SEC;
 	printf("Done in %.2lf seconds.\n", elapsed_secs);
 
-	while (1) {}
-
 #endif
 
-#if 0 // images Rectified......
-     const string Phaseimageslistfn  = "../mydata/input/phase_images.xml";
-     const string Rectifiedimageslistfn = "../mydata/input/Rect_phase_images.xml";
+#if 0
+	// images Rectified......
+	const string Phaseimageslistfn  = "../mydata/input/phase_images.xml";
+	const string Rectifiedimageslistfn = "../mydata/input/Rect_phase_images.xml";
      
-     ImgRectified(storintrinsicsyml, storextrinsicsyml, Phaseimageslistfn, Rectifiedimageslistfn);
-     
+	ImgRectified(storintrinsicsyml, storextrinsicsyml, Phaseimageslistfn, Rectifiedimageslistfn);
 #endif
 
 #if 1  // Calculate unwrapped phase
@@ -68,23 +66,26 @@ int main(int argc, char **argv)
 
     
 /***********************Calculate left phase*****************************************/
+/***********************计算左相位*****************************************/
 
     Mat wrapped_phase_left = CalWrappedPhase(Rect_images_left).clone();
     Mat unwrapped_phase_left(Size(wrapped_phase_left.cols, wrapped_phase_left.rows), CV_32FC1, Scalar(0.0));  // warning SIZE(cols,rows)!!!
       
     if(wrapped_phaseleft_txt)
     {
-      printf("storing the wrapped_phaseleft_txt...");
-      savePhase(wrapped_phaseleft_txt, wrapped_phase_left);
+		printf("storing the wrapped_phaseleft_txt...");
+		savePhase(wrapped_phaseleft_txt, wrapped_phase_left);
     }
     cout << "Done!!!" <<endl;
     
     cout << "Phase unwrapping......" <<endl;
    
+	//格雷码加相移解码
     UnwrappedPhaseGraycodeMethod(wrapped_phase_left, unwrapped_phase_left, Rect_images_left);
-  //  UnwrappedPhaseClassicMethod(wrapped_phase_left, unwrapped_phase_left);
+	// UnwrappedPhaseClassicMethod(wrapped_phase_left, unwrapped_phase_left);
     
     cout << "Done!!!" <<endl;
+
     if(unwrapped_phaseleft_txt)
     {
       printf("storing the unwrapped_phaseleft_txt...");
@@ -94,6 +95,7 @@ int main(int argc, char **argv)
     
     
 /*************************Calculate right phase***********************************/
+/***********************计算左相位*****************************************/
 
     Mat wrapped_phase_right = CalWrappedPhase(Rect_images_right).clone();
     Mat unwrapped_phase_right(Size(wrapped_phase_right.cols, wrapped_phase_right.rows), CV_32FC1, Scalar(0.0));  // warning SIZE(cols,rows)!!!
@@ -118,22 +120,23 @@ int main(int argc, char **argv)
     }
     cout << "Done!!!" <<endl;
 
-    
 	//imwrite("../mydata/filterphaseright.jpg", filterphase);
-	//imwrite("../mydata/unwrapped_phase_left.jpg", unwrapped_phase_left);
+	imwrite("../mydata/unwrapped_phase_left.jpg", unwrapped_phase_left);
+	imwrite("../mydata/unwrapped_phase_right.jpg", unwrapped_phase_right);
 	//imshow("filter_phase", unwrapped_phase_right);
     //waitKey(0);
     
 #endif
    
+/***********************立体匹配和三维重建*****************************************/
 #if 1 // stereo matching and 3D reconstruction
     const char* pnts3D_filename = "../mydata/output/pnts3D.txt";
     
     FileStorage fs(storextrinsicsyml, FileStorage::READ);
     if(!fs.isOpened())
     {
-       printf("Failed to open file extrinsics_filename.\n");
-       return 0;
+		printf("Failed to open file extrinsics_filename.\n");
+		return 0;
     }
     Mat P1, P2;
     fs["P1"] >> P1;
@@ -149,7 +152,6 @@ int main(int argc, char **argv)
     
 	cout << "the number of feature" << leftfeaturepoints.size() <<endl;
 
-
 	Mat pnts3D(4, leftfeaturepoints.size(), CV_64F);
     
     cout << "Calculate points3D......"<<endl;
@@ -158,6 +160,7 @@ int main(int argc, char **argv)
     cout << "Save points3D......" <<endl;    
     savepnts3D(pnts3D_filename, pnts3D);
     savepntsPCD(pnts3D);
+
 #endif    
 
 /*********************surface reconstruction************************************/
