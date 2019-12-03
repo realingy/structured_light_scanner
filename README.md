@@ -1,2 +1,3 @@
 # structured_light_scanner
-structured light scanner &amp; 3d reconstruct
+
+基于格雷码+相移的结构光扫描仪的解码加三维重建程序
