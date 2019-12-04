@@ -7,7 +7,6 @@
 #include "CalPhase.h"
 #include "Propointcloud.h"
 
-
 using namespace cv;
 using namespace std;
 
@@ -56,32 +55,37 @@ int main(int argc, char **argv)
 	ImgRectified(storintrinsicsyml, storextrinsicsyml, Phaseimageslistfn, Rectifiedimageslistfn);
 #endif
 
-#if 1  // Calculate unwrapped phase
+#if 1
+	// Calculate unwrapped phase
+	// 计算解包相位
     const char* wrapped_phaseleft_txt = "../mydata/output/wrapped_phase_left.txt";
     const char* wrapped_phaseright_txt = "../mydata/output/wrapped_phase_right.txt";
     const char* unwrapped_phaseleft_txt = "../mydata/output/unwrapped_phase_left.txt";
     const char* unwrapped_phaseright_txt = "../mydata/output/unwrapped_phase_right.txt";
     const char* Rect_images_left = "../mydata/input/Rect_images_left.xml";
     const char* Rect_images_right = "../mydata/input/Rect_images_right.xml";
-
     
-/***********************Calculate left phase*****************************************/
-/***********************计算左相位*****************************************/
-
+	/***********************Calculate left phase*****************************************/
+	/***********************计算左相位*****************************************/
+	// 计算左图的包裹相位
     Mat wrapped_phase_left = CalWrappedPhase(Rect_images_left).clone();
-    Mat unwrapped_phase_left(Size(wrapped_phase_left.cols, wrapped_phase_left.rows), CV_32FC1, Scalar(0.0));  // warning SIZE(cols,rows)!!!
-      
+
     if(wrapped_phaseleft_txt)
     {
-		printf("storing the wrapped_phaseleft_txt...");
+		// 存储左图的包裹相位
+		printf("storing the wrapped_phaseleft_txt...\n");
 		savePhase(wrapped_phaseleft_txt, wrapped_phase_left);
     }
     cout << "Done!!!" <<endl;
-    
+
+    // 计算左图的展开相位
+	Mat unwrapped_phase_left(Size(wrapped_phase_left.cols, wrapped_phase_left.rows), CV_32FC1, Scalar(0.0));
     cout << "Phase unwrapping......" <<endl;
-   
-	//格雷码加相移解码
+
+	// 格雷码解码方式计算展开相位
     UnwrappedPhaseGraycodeMethod(wrapped_phase_left, unwrapped_phase_left, Rect_images_left);
+
+	// 古典算法计算展开相位
 	// UnwrappedPhaseClassicMethod(wrapped_phase_left, unwrapped_phase_left);
     
     cout << "Done!!!" <<endl;
@@ -94,9 +98,8 @@ int main(int argc, char **argv)
     cout << "Done!!!" <<endl;
     
     
-/*************************Calculate right phase***********************************/
-/***********************计算左相位*****************************************/
-
+	/*************************Calculate right phase***********************************/
+	/***********************计算右相位*****************************************/
     Mat wrapped_phase_right = CalWrappedPhase(Rect_images_right).clone();
     Mat unwrapped_phase_right(Size(wrapped_phase_right.cols, wrapped_phase_right.rows), CV_32FC1, Scalar(0.0));  // warning SIZE(cols,rows)!!!
       
@@ -115,21 +118,22 @@ int main(int argc, char **argv)
     cout << "Done!!!" <<endl;
     if(unwrapped_phaseright_txt)
     {
-      printf("storing the unwrapped_phaseright_txt...");
-      savePhase(unwrapped_phaseright_txt, unwrapped_phase_right);
+		printf("storing the unwrapped_phaseright_txt...");
+		savePhase(unwrapped_phaseright_txt, unwrapped_phase_right);
     }
     cout << "Done!!!" <<endl;
 
 	//imwrite("../mydata/filterphaseright.jpg", filterphase);
-	imwrite("../mydata/unwrapped_phase_left.jpg", unwrapped_phase_left);
-	imwrite("../mydata/unwrapped_phase_right.jpg", unwrapped_phase_right);
+	imwrite("../myimages/unwrapped_phase_left.jpg", unwrapped_phase_left);
+	imwrite("../myimages/unwrapped_phase_right.jpg", unwrapped_phase_right);
 	//imshow("filter_phase", unwrapped_phase_right);
     //waitKey(0);
     
 #endif
    
-/***********************立体匹配和三维重建*****************************************/
-#if 1 // stereo matching and 3D reconstruction
+	/***********************立体匹配和三维重建*****************************************/
+#if 1
+	// stereo matching and 3D reconstruction
     const char* pnts3D_filename = "../mydata/output/pnts3D.txt";
     
     FileStorage fs(storextrinsicsyml, FileStorage::READ);
@@ -143,6 +147,7 @@ int main(int argc, char **argv)
     fs["P2"] >> P2;
     
     vector<Point2f> leftfeaturepoints, rightfeaturepoints; 
+    cout << "\n=============================" << endl;
     cout << "Calculate feature points......"<<endl;
     
     find_featurepionts_single_match(unwrapped_phase_left, unwrapped_phase_right, leftfeaturepoints, rightfeaturepoints);
@@ -150,25 +155,26 @@ int main(int argc, char **argv)
 	// find_featureBlock(unwrapped_phase_left, unwrapped_phase_right, leftfeaturepoints, rightfeaturepoints);
 	// find_featureSAD(unwrapped_phase_left, unwrapped_phase_right);
     
-	cout << "the number of feature" << leftfeaturepoints.size() <<endl;
+	cout << "the number of feature: " << leftfeaturepoints.size() <<endl;
 
 	Mat pnts3D(4, leftfeaturepoints.size(), CV_64F);
     
+    cout << "\n=============================" << endl;
     cout << "Calculate points3D......"<<endl;
-    triangulatePoints(P1, P2, leftfeaturepoints, rightfeaturepoints, pnts3D);
+    cv::triangulatePoints(P1, P2, leftfeaturepoints, rightfeaturepoints, pnts3D);
     
     cout << "Save points3D......" <<endl;    
     savepnts3D(pnts3D_filename, pnts3D);
     savepntsPCD(pnts3D);
-
 #endif    
 
-/*********************surface reconstruction************************************/
-/*********************表面重建*******************************/
+	/*********************surface reconstruction************************************/
+	/*********************表面重建*******************************/
 #if 1  // surface reconstruction
+    cout << "\n=============================" << endl;
 	cout << "surface reconstruction......" <<endl;
 	// filterpointcloud();
-	poissonreconstruction();
+	// poissonreconstruction(); // 泊松曲面重建
     
 	cout << "All Done......" <<endl;
 #endif
